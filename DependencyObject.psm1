@@ -345,6 +345,13 @@ param (
     } # End of func
 
 
+filter octype {
+    '['+$_.type +']'+ $_.name + ':' + $_.value
+}
+filter ocvalue {
+   $_.name + ':' + $_.value
+}
+
 if (!(get-alias ndo  -ea 0)) {
     New-Alias ndo New-DependencyObject
     }
