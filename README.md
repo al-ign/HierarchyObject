@@ -4,6 +4,8 @@ PSObject to build simple hierarchical structures
 
 This module uses PS v5 classes.
 
+Refer to [DependencyObject-GettingStarted.ps1](DependencyObject-GettingStarted.ps1) for guidance on how to use this module
+
 Example: 
 
 ```
