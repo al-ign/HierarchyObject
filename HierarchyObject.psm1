@@ -7,7 +7,8 @@ class HierarchyObject {
     [array] $Links
     [array] $DependOn
     [array] $DependedBy
-    hidden static [System.Collections.ArrayList] $AllObjects 
+    [System.Collections.ArrayList] $Tags
+    hidden static [System.Collections.ArrayList] $AllObjects
         
     #constructor
     HierarchyObject() {
@@ -128,7 +129,28 @@ class HierarchyObject {
         }
 
     RemoveObject () {
+        $this.RemoveLink($this)
+        $this.RemoveDependOn($this)
         [HierarchyObject]::AllObjects.Remove($this)
+        }
+
+    AddTag ($Tag) {
+        try {
+            $this.Tags.Add($Tag)
+            }
+        catch {
+            $this.Tags = New-Object System.Collections.ArrayList
+            $this.Tags.Add($Tag)
+            }
+        }
+
+    RemoveTag ($Tag) {
+        try {
+            $this.Tags.Remove($Tag)
+            }
+        catch {
+            Write-Debug -Message "RemoveTag() with $Tag was requested but no such tag existed"
+            }
         }
 
     } #end class declaration
@@ -141,8 +163,7 @@ $Type,
 $DependOn,
 $Value,
 $SubType,
-$Links,
-[switch]$CreateVariable
+$Links
 )
     $obj = New-Object HierarchyObject -ArgumentList $name,$type,$DependOn
     if ($value) {
@@ -157,19 +178,24 @@ $Links,
     return $obj
     }
 
-function Get-DOVariable {
+function Get-HierarchyObject {
 [CmdletBinding()]
 param ()
+    begin {
+        if ($MyInvocation.BoundParameters.Count -eq 0) {
+            [HierarchyObject]::AllObjects
+            }
+        }
     process {
-        Get-Variable | ? Value | ? {($_.Value.GetType()).Name -eq 'HierarchyObject'} | % {$_.Value}
+        
         }
 }
 
-function Remove-DOVariable {
+function Remove-HierarchyObject {
 [CmdletBinding()]
 param ()
-    end {
-       Get-Variable -Scope Global | ? Value | ? {($_.Value.GetType()).Name -eq 'HierarchyObject'} | %{Remove-Variable $_.name -Scope global}
+    process {
+        $_.RemoveObject()
         }
 }
 
@@ -207,7 +233,7 @@ begin {
  
      
     if ($array.Count -eq 0) {
-        [array]$array = Get-DOVariable
+        [array]$array = Get-HierarchyObject
         }
     
     if ($DependOn) {
