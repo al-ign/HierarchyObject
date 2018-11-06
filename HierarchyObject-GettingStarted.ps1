@@ -1,25 +1,27 @@
-﻿[environment]::NewLine * 5
+[environment]::NewLine * 5
 
 "cleanup for interactive sessions"
-Remove-DOVariable
+for ($i=0;$i -lt @(Get-HierarchyObject).count;$i++) {
+    (Get-HierarchyObject)[0].RemoveObject()
+    }
 Remove-Variable root -ErrorAction SilentlyContinue
 
 write-host "this will be the root of the hierarchy"
 'it will be assigned to $root variable so it can be easily referenced later'
-$root = New-DependencyObject -Name 'root' -CreateVariable
+$root = New-HierarchyObject -Name 'root'
 $root
 
 'this will be subordinate nodes'
 'if CreateVariable switch is used while creating node, global PowerShell variable would be created, so this node could be later found, without manually assigning it to a variable'
-New-DependencyObject -name Level1SubA -DependOn $root -CreateVariable
+New-HierarchyObject -name Level1SubA -DependOn $root
 
 'if you do not want to output nodes to pipeline wrap them to [void]() call or pipe it to Out-Null or assign to a (temporary) variable'
-[void](New-DependencyObject -name Level1SubB -DependOn $root -CreateVariable)
+[void](New-HierarchyObject -name Level1SubB -DependOn $root)
 
 ''
-'if you created a node with CreateVariable Switch you can later find this node using Get-DOVariable function and filtering it by its properties'
+'if you created a node with CreateVariable Switch you can later find this node using Get-HierarchyObject function and filtering it by its properties'
 'like here we are creating new node which is subordinate to a node with name "Level1SubA":'
-New-DependencyObject -name Level2SubA_A -DependOn (Get-DOVariable | ? {$_.name -eq 'Level1SubA'}) -CreateVariable
+New-HierarchyObject -name Level2SubA_A -DependOn (Get-HierarchyObject | ? {$_.name -eq 'Level1SubA'})
 
 'there are a couple of properties to query:'
 $root | Get-Member -MemberType Property | Format-Table
@@ -32,40 +34,40 @@ $root.Guid
 'root node obviously have none:'
 $root.DependOn.Count
 'but "Level1SubA" has one'
-(Get-DOVariable | ? {$_.name -eq 'Level1SubA'}).DependOn.Count
+(Get-HierarchyObject | ? {$_.name -eq 'Level1SubA'}).DependOn.Count
 'which is that of the $root node:'
-(Get-DOVariable | ? {$_.name -eq 'Level1SubA'}).DependOn[0].Guid -eq $root.Guid.Guid
+(Get-HierarchyObject | ? {$_.name -eq 'Level1SubA'}).DependOn[0].Guid -eq $root.Guid.Guid
 ''
 'DependedBy is a similar property, but for parent -> child relationship'
 '$root object now has two of them:'
 $root.DependedBy
 ''
 'You can change these relationships manually, calling AddDependOn() and RemoveDependOn() methods'
-(Get-DOVariable | ? {$_.name -eq 'Level2SubA_A'}).AddDependOn($root)
+(Get-HierarchyObject | ? {$_.name -eq 'Level2SubA_A'}).AddDependOn($root)
 ''
 'Now $root node should have 3 DependedBy references:'
 $root.DependedBy.Count
 'And "Level2SubA_A" has two guids in DependOn property:'
-(Get-DOVariable | ? {$_.name -eq 'Level2SubA_A'}) | Select-Object DependOn
+(Get-HierarchyObject | ? {$_.name -eq 'Level2SubA_A'}) | Select-Object DependOn
 ''
 'There is another property, Links, which can be used for direct connections between nodes anywhere in (and out of) hierarchy'
 'This property is used through AddLink() and RemoveLink() methods'
-$anotherRoot = New-DependencyObject -Name 'AnotherRoot' -CreateVariable
-(Get-DOVariable | ? {$_.name -eq 'Level2SubA_A'}).AddLink($anotherRoot)
-(Get-DOVariable | ? {$_.name -eq 'Level2SubA_A'})
+$anotherRoot = New-HierarchyObject -Name 'AnotherRoot'
+(Get-HierarchyObject | ? {$_.name -eq 'Level2SubA_A'}).AddLink($anotherRoot)
+(Get-HierarchyObject | ? {$_.name -eq 'Level2SubA_A'})
 
 'There are a couple of helper functions:'
-'Get-DOVariable retrieves all variables of DependencyObject type'
-(Get-DOVariable).Count
-Get-DOVariable | Format-Table
+'Get-HierarchyObject retrieves all variables of HierarchyObject type'
+(Get-HierarchyObject).Count
+Get-HierarchyObject | Format-Table
 
 'Remove-DOVariable does what it says (and for now cleans ALL of them (!))'
 ''
-'Walk-DependencyObject will walk the tree of the DepednedBy nodes'
-[void](New-DependencyObject -name Level2SubB_A -DependOn ((Get-DOVariable | ? {$_.name -eq 'Level1SubB'})) -CreateVariable)
-[void](New-DependencyObject -name Level3SubB_A_A -DependOn ((Get-DOVariable | ? {$_.name -eq 'Level2SubB_A'})) -CreateVariable)
-Walk-DependencyObject (Get-DOVariable | ? {$_.name -eq 'Level1SubB'}) 
+'Walk-HierarchyObject will walk the tree of the DepednedBy nodes'
+[void](New-HierarchyObject -name Level2SubB_A -DependOn ((Get-HierarchyObject | ? {$_.name -eq 'Level1SubB'})))
+[void](New-HierarchyObject -name Level3SubB_A_A -DependOn ((Get-HierarchyObject | ? {$_.name -eq 'Level2SubB_A'})))
+Walk-HierarchyObject (Get-HierarchyObject | ? {$_.name -eq 'Level1SubB'}) 
 
-'Get-DOLinkedObjects retrieves linked *Objects* (not their guids)'
-$anotherRoot | Get-DOLinkedObjects 
+#'Get-DOLinkedObjects retrieves linked *Objects* (not their guids)'
+#$anotherRoot | Get-DOLinkedObjects 
 
